@@ -178,7 +178,7 @@ stdenv.mkDerivation rec {
         fi
         cat > "$dest" << EOF
     #!${bash}/bin/sh
-    exec "$1" "$@"
+    exec "$1" \$@
     EOF
     chmod +x "$dest"
     }
