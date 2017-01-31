@@ -159,9 +159,10 @@ stdenv.mkDerivation rec {
                 ;;
         esac
     done
-  '';
 
-    # TODO: all(?) executables in $out/modelsim_ase/bin/ hardcode /bin/ls.
+    echo "Fixup hardcoded /bin/ls in .../modelsim_ase/vco"
+    sed -i -e "s,/bin/ls,ls," "$out"/modelsim_ase/vco
+  '';
 
     # TODO: Provide a couple of convenience wrappers in $out/bin, so that the tools can be started directly from PATH.
     # Symlinks don't work though, due to assumptions of resources relative to arg0.
