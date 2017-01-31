@@ -180,10 +180,26 @@ stdenv.mkDerivation rec {
     chmod +x "$dest"
     }
 
-    echo "Provide top-level bin/ directory with wrappers for common tools"
+    echo "Creating top-level bin/ directory with wrappers for common tools"
     mkdir -p "$out/bin"
-    for p in "$out"/quartus/bin/*; do
+    for p in "$out"/*/bin/*; do
+        test -f "$p" || continue
         wrap "$p"
     done
+
+    echo "Installing Desktop file..."
+    mkdir -p "$out/share/applications"
+    f="$out"/share/applications/quartus.desktop
+    cat >> "$f" << EOF
+    [Desktop Entry]
+    Type=Application
+    Version=0.9.4
+    Name=Quartus Prime ${version} Lite Edition
+    Comment=Quartus Prime ${version}
+    Icon=$out/quartus/adm/quartusii.png
+    Exec=$out/quartus/bin/quartus
+    Terminal=false
+    Path=$out
+    EOF
   '';
 }
