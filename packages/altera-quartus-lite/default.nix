@@ -160,11 +160,15 @@ stdenv.mkDerivation rec {
         esac
     done
 
-    echo "Fix hardcoded \"/bin/ls\" in .../modelsim_ase/vco"
-    sed -i -e "s,/bin/ls,ls," "$out"/modelsim_ase/vco
+    # Modelsim is optional
+    f="$out"/modelsim_ase/vco
+    if [ -f "$f" ]; then
+        echo "Fix hardcoded \"/bin/ls\" in .../modelsim_ase/vco"
+        sed -i -e "s,/bin/ls,ls," "$f"
 
-    echo "Fix support for Linux 4.x in .../modelsim_ase/vco"
-    sed -i -e "/case \$utype in/a 4.[0-9]*) vco=\"linux\" ;;" "$out"/modelsim_ase/vco
+        echo "Fix support for Linux 4.x in .../modelsim_ase/vco"
+        sed -i -e "/case \$utype in/a 4.[0-9]*) vco=\"linux\" ;;" "$f"
+    fi
 
     # Provide convenience wrappers in $out/bin, so that the tools can be
     # started directly from PATH. Plain symlinks don't work, due to assumptions
