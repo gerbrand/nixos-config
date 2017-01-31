@@ -160,16 +160,30 @@ stdenv.mkDerivation rec {
         esac
     done
 
-    echo "Fixup hardcoded /bin/ls in .../modelsim_ase/vco"
+    echo "Fixup hardcoded \"/bin/ls\" in .../modelsim_ase/vco"
     sed -i -e "s,/bin/ls,ls," "$out"/modelsim_ase/vco
+
+    # Provide convenience wrappers in $out/bin, so that the tools can be
+    # started directly from PATH. Plain symlinks don't work, due to assumptions
+    # of resources relative to arg0.
+    wrap()
+    {
+        dest="$out/bin/$(basename "$1")"
+        if [ -f "$dest" ]; then
+            echo "ERROR: $dest already exist"
+            exit 1
+        fi
+        cat > "$dest" << EOF
+    #!${bash}/bin/sh
+    exec "$1" "$@"
+    EOF
+    chmod +x "$dest"
+    }
+
+    echo "Provide top-level bin/ directory with wrappers for common tools"
+    mkdir -p "$out/bin"
+    for p in "$out"/quartus/bin/*; do
+        wrap "$p"
+    done
   '';
-
-    # TODO: Provide a couple of convenience wrappers in $out/bin, so that the tools can be started directly from PATH.
-    # Symlinks don't work though, due to assumptions of resources relative to arg0.
-    #echo "Provide a top-level bin/ directory with wrappers for common tools"
-    #if [ "$out"/quartus/bin/quartus ]; then
-    #    mkdir -p "$out"/bin
-    #    ln -sr "$out"/quartus/bin/quartus "$out"/bin/
-    #fi
-
 }
