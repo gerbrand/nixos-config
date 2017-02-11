@@ -145,7 +145,8 @@ stdenv.mkDerivation rec {
                 # Some tools require libstdc++.so.6 and they are built
                 # incorrect so they don't find their own library.
                 # Out of the several copies in $out, pick one:
-                new_rpath="$new_rpath:$out/quartus/linux64"
+                # TODO: it may have broken some other tools. Better test some more.
+                #new_rpath="$new_rpath:$out/quartus/linux64"
                 case "$magic" in
                     *ELF*executable*)
                         interp=$(patchelf --print-interpreter "$f") || { echo "FAILED: patchelf --print-interpreter $f"; exit 1; }
