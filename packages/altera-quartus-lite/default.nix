@@ -132,29 +132,45 @@ stdenv.mkDerivation rec {
         chmod +w "$f"
         magic=$(file "$f") || { echo "file \"$f\" failed"; exit 1; }
         case "$magic" in
-            *ELF*executable*dynamically\ linked*)
-                interp=$(patchelf --print-interpreter "$f") || { echo "patchelf --print-interpreter $f failed"; exit 1; }
-                # Note the LSB interpreters, required by some files
-                if [ "$interp" = "/lib64/ld-linux-x86-64.so.2" -o "$interp" = "/lib64/ld-lsb-x86-64.so.3" ]; then
-                    new_interp=$(cat "$NIX_CC"/nix-support/dynamic-linker)
-                    test -f "$new_interp" || { echo "$new_interp is missing"; exit 1; }
-                    patchelf --set-interpreter "$new_interp" \
-                             --set-rpath "${runtimeLibPath}" "$f" || { echo "Exiting while processing $f"; exit 1; }
-                elif [ "$interp" = "/lib/ld-linux.so.2" -o "$interp" = "/lib/ld-lsb.so.3" ]; then
-                    new_interp="${pkgsi686Linux.glibc}/lib/ld-linux.so.2"
-                    test -f "$new_interp" || { echo "$new_interp is missing"; exit 1; }
-                    patchelf --set-interpreter "$new_interp" "$f"
-                    # TODO: RPATH for 32-bit executables
-                else
-                    echo "FIXME: unsupported interpreter \"$interp\" in $f"
-                    exit 1
+            *ELF*dynamically\ linked*)
+                orig_rpath=$(patchelf --print-rpath "$f") || { echo "FAILED: patchelf --print-rpath $f"; exit 1; }
+                # Take care not to add ':' at start or end of RPATH, because
+                # that is the same as '.' (current directory), and that's
+                # insecure.
+                if [ "$orig_rpath" != "" ]; then
+                    orig_rpath="$orig_rpath:"
                 fi
+                new_rpath="$orig_rpath${runtimeLibPath}"
+                # Some tools require libstdc++.so.6 and they are built
+                # incorrect so they don't find their own library.
+                # Out of the several copies in $out, pick one:
+                new_rpath="$new_rpath:$out/quartus/linux64"
+                case "$magic" in
+                    *ELF*executable*)
+                        interp=$(patchelf --print-interpreter "$f") || { echo "FAILED: patchelf --print-interpreter $f"; exit 1; }
+                        # Note the LSB interpreters, required by some files
+                        if [ "$interp" = "/lib64/ld-linux-x86-64.so.2" -o "$interp" = "/lib64/ld-lsb-x86-64.so.3" ]; then
+                            new_interp=$(cat "$NIX_CC"/nix-support/dynamic-linker)
+                            test -f "$new_interp" || { echo "$new_interp is missing"; exit 1; }
+                            patchelf --set-interpreter "$new_interp" \
+                                     --set-rpath "$new_rpath" "$f" || { echo "FAILED: patchelf --set-interpreter $new_interp --set-rpath $new_rpath $f"; exit 1; }
+                        elif [ "$interp" = "/lib/ld-linux.so.2" -o "$interp" = "/lib/ld-lsb.so.3" ]; then
+                            new_interp="${pkgsi686Linux.glibc}/lib/ld-linux.so.2"
+                            test -f "$new_interp" || { echo "$new_interp is missing"; exit 1; }
+                            patchelf --set-interpreter "$new_interp" "$f"
+                            # TODO: RPATH for 32-bit executables
+                        else
+                            echo "FIXME: unsupported interpreter \"$interp\" in $f"
+                            exit 1
+                        fi
+                        ;;
+                    *ELF*shared\ object*x86-64*)
+                        patchelf --set-rpath "$new_rpath" "$f" || { echo "FAILED: patchelf --set-rpath $f"; exit 1; }
+                        ;;
+                esac
                 ;;
-            *ELF*shared\ object*x86-64*dynamically\ linked*)
-                patchelf --set-rpath "${runtimeLibPath}" "$f" || { echo "Exiting while processing $f"; exit 1; }
-                ;;
-            *ELF*executable*statically\ linked*)
-                echo "WARN: $f is statically linked, need fixup?"
+            *ELF*statically\ linked*)
+                echo "WARN: $f is statically linked. Needs fixup?"
                 ;;
         esac
     done
