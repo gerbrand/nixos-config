@@ -3,7 +3,7 @@
 with pkgs;
 
 {
-  altera-quartus-prime-lite = callPackage ./altera-quartus-lite/default.nix {
+  altera-quartus-prime-lite = callPackage ./altera-quartus-prime-lite/default.nix {
     disableComponents = [
       #/*"quartus"*/ "quartus_help" "devinfo" "arria_lite" "cyclone" "cyclonev"
       #"max" "max10" "quartus_update" "modelsim_ase" "modelsim_ae"
