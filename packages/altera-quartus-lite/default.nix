@@ -58,9 +58,9 @@ let
   # package in two derivations: one extracts the tarball and the other runs the
   # unpacked installer program. That allows changing the installer arguments
   # without doing expensive unpack operation (useful when developing).
-  altera-quartus-lite-installers =
+  altera-quartus-prime-lite-installers =
     stdenv.mkDerivation rec {
-      name = "altera-quartus-lite-installers-${version}";
+      name = "altera-quartus-prime-lite-installers-${version}";
       version = "16.1.1.200";
       src = fetchurl {
         # The tarball is not publically available, users must register online
@@ -80,9 +80,9 @@ let
 in
 
 stdenv.mkDerivation rec {
-  name = "altera-quartus-lite-${version}";
-  version = altera-quartus-lite-installers.version;
-  src = altera-quartus-lite-installers;
+  name = "altera-quartus-prime-lite-${version}";
+  version = altera-quartus-prime-lite-installers.version;
+  src = altera-quartus-prime-lite-installers;
   buildInputs = [ file ];
 
   # Prebuilt binaries need special treatment
