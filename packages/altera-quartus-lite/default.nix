@@ -204,7 +204,7 @@ stdenv.mkDerivation rec {
 
     echo "Creating top-level bin/ directory with wrappers for common tools"
     mkdir -p "$out/bin"
-    for p in "$out"/*/bin/*; do
+    for p in "$out/"*"/bin/"*; do
         test -f "$p" || continue
         wrap "$p"
     done
