@@ -91,8 +91,9 @@ stdenv.mkDerivation rec {
 
   unpackPhase = "true";
 
-  # Quartus' setup.sh doesn't fit our needs (automatic, distro-agnostic
-  # install), so call the actual setup program directly instead.
+  # Quartus' setup.sh doesn't fit our needs (we want automatic and
+  # distro-agnostic install), so call the actual setup program directly
+  # instead.
   #
   # QuartusLiteSetup is a statically linked ELF executable that runs
   # open("/lib64/ld-linux-x86-64.so.2", ...). That obviously doesn't work in
@@ -110,7 +111,7 @@ stdenv.mkDerivation rec {
   # For runtime, injecting (or wrapping with) LD_LIBRARY_PATH is easier, but it
   # messes with the environment for all child processes. We take the less
   # invasive approach here, patchelf + RPATH. Unfortunately, Quartus itself
-  # sets up LD_LIBRARY_PATH in its wrapper scripts. This cause e.g. firefox to
+  # uses LD_LIBRARY_PATH in its wrapper scripts. This cause e.g. firefox to
   # fail due to LD_LIBRARY_PATH pulling in wrong libraries for it (happens if
   # clicking any URL in Quartus).
   installPhase = ''
