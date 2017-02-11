@@ -224,4 +224,12 @@ stdenv.mkDerivation rec {
     Path=$out
     EOF
   '';
+
+  meta = with stdenv.lib; {
+    description = "Development tools for Altera FPGA, CPLD and SoC designs";
+    homepage = https://www.altera.com/;
+    license = licenses.unfree;
+    platforms = [ "x86_64-linux" ];
+    maintainers = [ maintainers.bjornfor ];
+  };
 }
