@@ -129,7 +129,6 @@
     simplescreenrecorder
     skype
     sloccount
-    smartmontools
     socat
     solfege
     spice
@@ -150,7 +149,6 @@
     vifm
     virtmanager
     virtviewer
-    vlc
     weston
     wgetpaste
     wineUnstable

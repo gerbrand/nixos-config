@@ -42,6 +42,7 @@
     pciutils
     psmisc
     screen
+    smartmontools
     sshfsFuse
     sysdig
     sysstat
@@ -50,6 +51,7 @@
     unzip
     usbutils
     vim_configurable
+    vlc
     wget
     which
     w3m
