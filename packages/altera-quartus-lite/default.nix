@@ -1,5 +1,4 @@
 { stdenv, fetchurl, utillinux, file, bash, glibc, pkgsi686Linux, writeScript
-, buildEnv
 # Runtime dependencies
 , zlib, glib, libpng12, freetype, libSM, libICE, libXrender, fontconfig
 , libXext, libX11, bzip2, libelf
@@ -184,7 +183,7 @@ stdenv.mkDerivation rec {
     #!${bash}/bin/sh
     exec "$1" "\$@"
     EOF
-    chmod +x "$dest"
+        chmod +x "$dest"
     }
 
     echo "Creating top-level bin/ directory with wrappers for common tools"
