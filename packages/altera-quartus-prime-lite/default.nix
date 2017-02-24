@@ -1,4 +1,5 @@
 { stdenv, fetchurl, utillinux, file, bash, glibc, pkgsi686Linux, writeScript
+, nukeReferences
 # Runtime dependencies
 , zlib, glib, libpng12, freetype, libSM, libICE, libXrender, fontconfig
 , libXext, libX11, bzip2, libelf
@@ -83,7 +84,7 @@ stdenv.mkDerivation rec {
   name = "altera-quartus-prime-lite-${version}";
   version = altera-quartus-prime-lite-installers.version;
   src = altera-quartus-prime-lite-installers;
-  buildInputs = [ file ];
+  buildInputs = [ file nukeReferences ];
 
   # Prebuilt binaries need special treatment
   dontStrip = true;
@@ -122,6 +123,9 @@ stdenv.mkDerivation rec {
 
     echo "Removing unneeded \"uninstall\" binaries (saves about 2 GiB, if all components are enabled)..."
     rm -rf "$out"/uninstall
+
+    echo "Prevent retaining a runtime dependency on the installer binaries (saves about 8 GiB)"
+    nuke-refs "$out/logs"
 
     echo "Fixing ELF interpreter paths with patchelf..."
     find "$out" -type f | while read f; do
