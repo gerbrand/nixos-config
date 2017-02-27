@@ -125,7 +125,7 @@ stdenv.mkDerivation rec {
     rm -rf "$out"/uninstall
 
     echo "Prevent retaining a runtime dependency on the installer binaries (saves about 8 GiB)"
-    nuke-refs "$out/logs"
+    nuke-refs "$out/logs/"*
 
     echo "Fixing ELF interpreter paths with patchelf..."
     find "$out" -type f | while read f; do
