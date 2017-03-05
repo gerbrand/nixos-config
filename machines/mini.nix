@@ -9,6 +9,7 @@ in
   imports = [
     ../config/base-big.nix
     ../options/nextcloud.nix
+    ../options/collectd-graph-panel.nix
   ];
 
   fileSystems = {
@@ -69,31 +70,7 @@ in
       #mod_status = true; # don't expose to the public
       mod_userdir = true;
       enableModules = [ "mod_alias" "mod_proxy" "mod_access" "mod_fastcgi" "mod_redirect" ];
-      extraConfig =
-        let
-          collectd-graph-panel =
-            pkgs.stdenv.mkDerivation rec {
-              name = "collectd-graph-panel-${version}";
-              version = "0.4.1";
-              src = pkgs.fetchzip {
-                name = "${name}-src";
-                url = "https://github.com/pommi/CGP/archive/v${version}.tar.gz";
-                sha256 = "14jm7jidp4z0vcd9rcblrqkp6mfbmvc548biwrjylm6yvdjgqb9l";
-              };
-              buildCommand = ''
-                mkdir -p "$out"
-                cp -r "$src"/. "$out"
-                chmod +w "$out"/conf
-                cat > "$out"/conf/config.local.php << EOF
-                <?php
-                \$CONFIG['datadir'] = '/var/lib/collectd';
-                \$CONFIG['rrdtool'] = '${pkgs.rrdtool}/bin/rrdtool';
-                \$CONFIG['graph_type'] = 'canvas';
-                ?>
-                EOF
-              '';
-            };
-        in ''
+      extraConfig = ''
         $HTTP["host"] =~ ".*" {
           dir-listing.activate = "enable"
           alias.url += ( "/munin" => "/var/www/munin" )
@@ -110,11 +87,6 @@ in
           # /transmission (no trailing slash).
           url.redirect = ( "^/transmission/(web)?$" => "/transmission" )
 
-          alias.url += ( "/collectd" => "${collectd-graph-panel}" )
-          $HTTP["url"] =~ "^/collectd" {
-            index-file.names += ( "index.php" )
-          }
-
           fastcgi.server = (
             ".php" => (
               "localhost" => (
@@ -124,7 +96,7 @@ in
 
           # Block access to certain URLs if remote IP is not on LAN
           $HTTP["remoteip"] !~ "^(192\.168\.1|127\.0\.0\.1)" {
-              $HTTP["url"] =~ "(^/transmission/.*|^/server-.*|^/munin/.*|^/collectd.*)" {
+              $HTTP["url"] =~ "(^/transmission/.*|^/server-.*|^/munin/.*|^${config.services.lighttpd.collectd-graph-panel.urlPrefix}.*)" {
                   url.access-deny = ( "" )
               }
           }
@@ -133,15 +105,15 @@ in
         # Lighttpd SSL/HTTPS documentation:
         # http://redmine.lighttpd.net/projects/lighttpd/wiki/Docs_SSL
 
-        $HTTP["host"] == "bforsman.name" {
+        $HTTP["host"] == "${myDomain}" {
           $SERVER["socket"] == ":443" {
             ssl.engine = "enable"
-            ssl.pemfile = "/etc/lighttpd/certs/bforsman.name.pem"
+            ssl.pemfile = "/etc/lighttpd/certs/${myDomain}.pem"
             ssl.ca-file = "/etc/lighttpd/certs/1_Intermediate.crt"
           }
           $HTTP["scheme"] == "http" {
             $HTTP["url"] =~ "^/nextcloud" {
-              url.redirect = ("^/.*" => "https://bforsman.name$0")
+              url.redirect = ("^/.*" => "https://${myDomain}$0")
             }
           }
         }
@@ -169,6 +141,7 @@ in
           }
         }
       '';
+      collectd-graph-panel.enable = true;
       nextcloud.enable = true;
       gitweb.enable = true;
       cgit = {
@@ -505,6 +478,6 @@ in
   users.extraUsers.bfo.openssh.authorizedKeys.keys = with import ../misc/ssh-keys.nix; [
     bfo_at_whitetip
     (''command="./bin/restricted-hamster-scp-command",restrict '' + bf_at_work)
-    (''command="/run/current-system7sw/bin/uptime",restrict '' + my_phone)
+    (''command="/run/current-system/sw/bin/uptime",restrict '' + my_phone)
   ];
 }
