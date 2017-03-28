@@ -110,7 +110,7 @@ stdenv.mkDerivation rec {
   # * dynamic linker tricks (again, static ELF)
   # * proot (the installer somehow detects something is wrong and aborts)
   #
-  # We need bigger guns: user namespaces and chroot. That way we make /lib64/
+  # We need bigger guns: user namespaces and chroot. That's how we make /lib64/
   # available to the installer. The installer installs dynamically linked ELF
   # files, so those we can fixup with usual tools.
   #
