@@ -1,6 +1,6 @@
-# FIXME: eclipse-nios2 (and probably others) do not find libstdc++.so.6
+# TODO: eclipse-nios2 (and probably others) do not find libstdc++.so.6
 #
-# FIXME: (follow up) eclipse-nios2 fails to start: it cannot load SWT library
+# TODO: (follow up) eclipse-nios2 fails to start: it cannot load SWT library
 #        due to missing libgtk-x11-2.0.so.0
 
 { stdenv, fetchurl, utillinux, file, bash, glibc, pkgsi686Linux, writeScript
