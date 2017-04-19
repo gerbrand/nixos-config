@@ -21,11 +21,6 @@
 #   We cannot bisect more!
 #   bisect run cannot continue any more
 
-# TODO: eclipse-nios2 (and probably others) do not find libstdc++.so.6
-#
-# TODO: (follow up) eclipse-nios2 fails to start: it cannot load SWT library
-#        due to missing libgtk-x11-2.0.so.0
-
 { stdenv, fetchurl, utillinux, file, bash, glibc, pkgsi686Linux, writeScript
 , nukeReferences
 # Runtime dependencies
@@ -36,6 +31,11 @@
 #   quartus_update modelsim_ase modelsim_ae
 , disableComponents ? []
 }:
+
+# TODO: eclipse-nios2 (and probably more) do not find libstdc++.so.6
+#
+# TODO: (follow up on the above) eclipse-nios2 fails to start: it cannot load
+# SWT library due to missing libgtk-x11-2.0.so.0
 
 let
   disableComponentsOption =
@@ -253,7 +253,7 @@ stdenv.mkDerivation rec {
     Name=Quartus Prime ${version} Lite Edition
     Comment=Quartus Prime ${version}
     Icon=$out/quartus/adm/quartusii.png
-    Exec=$out/quartus/bin/quartus
+    Exec=$out/bin/quartus
     Terminal=false
     Path=$out
     EOF
