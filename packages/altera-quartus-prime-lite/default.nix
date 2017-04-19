@@ -2,7 +2,7 @@
 , nukeReferences
 # Runtime dependencies
 , zlib, glib, libpng12, freetype, libSM, libICE, libXrender, fontconfig
-, libXext, libX11, bzip2, libelf
+, libXext, libX11, bzip2, libelf, gtk2
 # From "QuartusLiteSetup* --help", these components can be disabled:
 #   quartus quartus_help devinfo arria_lite cyclone cyclonev max max10
 #   quartus_update modelsim_ase modelsim_ae
@@ -23,7 +23,8 @@ let
   runtimeLibPath =
     stdenv.lib.makeLibraryPath
       [ zlib glib libpng12 freetype libSM libICE libXrender fontconfig.lib
-        libXext libX11 bzip2.out libelf
+        libXext libX11 bzip2.out libelf gtk2
+        stdenv.cc.cc.lib
       ];
 
   setup-chroot-and-exec = writeScript "setup-chroot-and-exec"
