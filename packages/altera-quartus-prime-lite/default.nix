@@ -40,7 +40,17 @@
 #   else
 #           exit $ret
 #   fi
-
+#
+#
+# After reverting the glibc update (2.24 -> 2.25) in master / release-17.03 the
+# build works again.
+#
+# $ git log origin/master..tmp | grep "This reverts"
+#     This reverts commit 09d02f72f6dc9201fbfce631cb1155d295350176.
+#     This reverts commit 4b7215368ac16b862ee523bdc193e69c174c4942.
+#     This reverts commit c30b12b9a5cc35b658e65b3ff54e9c877f1380ad.
+#     This reverts commit e47ac55a21ce5b7c4b9e7e3a068fb5823a2cb5b0.
+#     This reverts commit 8328e3d3a6dc511f3ac962e4ca74f96d29ab1c5f.
 
 { stdenv, fetchurl, utillinux, file, bash, glibc, pkgsi686Linux, writeScript
 , nukeReferences
