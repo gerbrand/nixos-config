@@ -1,3 +1,26 @@
+# This expression cannot be built on nixpkgs.git release-17.03 branch; it hangs
+# forever.
+#
+# Bisecting the build breakage (hanging) between release-16.09 and
+# release-17.03 ended up with this:
+#
+#   There are only 'skip'ped commits left to test.
+#   The first bad commit could be any of:
+#   5cf7b7c10954178217bd9cd6a6db00de0c5b8fe7
+#   5a38ab8add15fb041d488e59c1fee6a4704a67ac
+#   62c323bdffafacc0aebe5db158530816a8be7282
+#   292efffb6285cb55cfbbc1b22a54c40b8e63eada
+#   4339dca980bfbaaf958d11ae8e3db6e21fc33fc3
+#   2cb76ff1ff3f90a82156f6a742374d975fe06a31
+#   dbae14164b1748e6f5b67bcf43e0c64b48c37e8f
+#   09d02f72f6dc9201fbfce631cb1155d295350176
+#   9458018a875402fe246efad2672a1a4c0ede074a
+#   0ff2179e0ffc5aded75168cb5a13ca1821bdcd24
+#   3ba1875743c21d5fe184123a88015fdf916a22ee
+#   b17eb34203b891cd801d5d9394d2b3cfa15c786f
+#   We cannot bisect more!
+#   bisect run cannot continue any more
+
 # TODO: eclipse-nios2 (and probably others) do not find libstdc++.so.6
 #
 # TODO: (follow up) eclipse-nios2 fails to start: it cannot load SWT library
