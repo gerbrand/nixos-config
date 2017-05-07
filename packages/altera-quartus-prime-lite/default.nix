@@ -20,6 +20,27 @@
 #   b17eb34203b891cd801d5d9394d2b3cfa15c786f
 #   We cannot bisect more!
 #   bisect run cannot continue any more
+#
+#
+# Here is a `git bisect run $SCRIPT`:
+#
+#   #!/bin/sh
+#
+#   set -x
+#   cd /path/to/packages/altera-quartus-prime-lite/
+#   # A working build may take up to 30 minutes (on _my_ build machine). A broken one hangs forever.
+#   #NIX_PATH=nixpkgs=/home/bfo/nixpkgs timeout 40m time nix-build -E '(import <nixpkgs> {}).callPackage ./. {}'
+#   # Disable some packages to shorten the build time
+#   NIX_PATH=nixpkgs=/home/bfo/nixpkgs timeout 30m time nix-build -E '(import <nixpkgs> {}).callPackage ./. { disableComponents = [ "quartus_help" "devinfo" "arria_lite" "cyclone" "cyclonev" "max" "max10" "quartus_update" "modelsim_ase" "modelsim_ae" ]; }'
+#
+#   ret=$?
+#   if [ $ret -eq 100 ]; then
+#           # AFAICS, 100 means a dependency failed to build
+#           exit 125 # signal to `git bisect run` that this revision cannot be tested.
+#   else
+#           exit $ret
+#   fi
+
 
 { stdenv, fetchurl, utillinux, file, bash, glibc, pkgsi686Linux, writeScript
 , nukeReferences
