@@ -178,7 +178,7 @@ stdenv.mkDerivation rec {
     ${run-in-fhs-env} "$src/components/QuartusLiteSetup* --mode unattended ${disableComponentsOption} --installdir $out"
     echo "...done"
 
-    echo "Removing unneeded \"uninstall\" binaries (saves about 2 GiB, if all components are enabled)..."
+    echo "Removing unneeded \"uninstall\" binaries (saves $(du -sh "$out"/uninstall | cut -f1))..."
     rm -rf "$out"/uninstall
 
     echo "Prevent retaining a runtime dependency on the installer binaries (saves about 8 GiB)"
