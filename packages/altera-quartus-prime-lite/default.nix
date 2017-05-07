@@ -38,6 +38,14 @@
 # SWT library due to missing libgtk-x11-2.0.so.0
 
 let
+  # Somewhere between NixOS 16.09 and 17.03 (for instance, commit 9e6eec201b)
+  # the glibc attribute lacked $out/lib{,64}. The glibc_lib attribute below
+  # helped when bisecting build hang between 16.03 and 17.03.
+  glibc_lib =
+    if glibc ? out then glibc.out else glibc;
+  glibc32_lib =
+    if pkgsi686Linux.glibc ? out then pkgsi686Linux.glibc.out else pkgsi686Linux.glibc;
+
   disableComponentsOption =
     if disableComponents != [] then
       ''--disable-components ${stdenv.lib.concatStringsSep "," disableComponents}''
@@ -65,7 +73,7 @@ let
       ${utillinux}/bin/mount --rbind /nix  "$chrootdir"/nix
       ${utillinux}/bin/mount --rbind /tmp  "$chrootdir"/tmp
       ${utillinux}/bin/mount --rbind /dev  "$chrootdir"/dev
-      ${utillinux}/bin/mount --rbind "${glibc}"/lib64 "$chrootdir"/lib64
+      ${utillinux}/bin/mount --rbind "${glibc_lib}"/lib64 "$chrootdir"/lib64
       ${utillinux}/bin/mount --rbind "${bash}"/bin "$chrootdir"/bin
       chroot "$chrootdir" $@
     '';
@@ -189,7 +197,7 @@ stdenv.mkDerivation rec {
                             patchelf --set-interpreter "$new_interp" \
                                      --set-rpath "$new_rpath" "$f" || { echo "FAILED: patchelf --set-interpreter $new_interp --set-rpath $new_rpath $f"; exit 1; }
                         elif [ "$interp" = "/lib/ld-linux.so.2" -o "$interp" = "/lib/ld-lsb.so.3" ]; then
-                            new_interp="${pkgsi686Linux.glibc}/lib/ld-linux.so.2"
+                            new_interp="${glibc32_lib}/lib/ld-linux.so.2"
                             test -f "$new_interp" || { echo "$new_interp is missing"; exit 1; }
                             patchelf --set-interpreter "$new_interp" "$f"
                             # TODO: RPATH for 32-bit executables
