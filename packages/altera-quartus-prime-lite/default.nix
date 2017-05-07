@@ -30,8 +30,8 @@
 #   cd /path/to/packages/altera-quartus-prime-lite/
 #   # A working build may take up to 30 minutes (on _my_ build machine). A broken one hangs forever.
 #   #NIX_PATH=nixpkgs=/home/bfo/nixpkgs timeout 40m time nix-build -E '(import <nixpkgs> {}).callPackage ./. {}'
-#   # Disable some packages to shorten the build time
-#   NIX_PATH=nixpkgs=/home/bfo/nixpkgs timeout 30m time nix-build -E '(import <nixpkgs> {}).callPackage ./. { disableComponents = [ "quartus_help" "devinfo" "arria_lite" "cyclone" "cyclonev" "max" "max10" "quartus_update" "modelsim_ase" "modelsim_ae" ]; }'
+#   # Disable some packages to shorten the build time (working ~10 minutes)
+#   NIX_PATH=nixpkgs=/home/bfo/nixpkgs timeout 20m time nix-build -E '(import <nixpkgs> {}).callPackage ./. { disableComponents = [ "quartus_help" "devinfo" "arria_lite" "cyclone" "cyclonev" "max" "max10" "quartus_update" "modelsim_ase" "modelsim_ae" ]; }'
 #
 #   ret=$?
 #   if [ $ret -eq 100 ]; then
