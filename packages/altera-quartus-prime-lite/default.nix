@@ -109,7 +109,7 @@ let
           echo "Usage: run-in-fhs-env <COMMAND> [ARGS...]"
           exit 1
       fi
-      ${utillinux}/bin/unshare -r -U -m "${setup-chroot-and-exec}" $@
+      ${utillinux}/bin/unshare -r -U -m "${setup-chroot-and-exec}" "$@"
     '';
 
   # Because the tarball is so big (>8 GiB) and slow to extract, we split the
@@ -175,7 +175,7 @@ stdenv.mkDerivation rec {
   installPhase = ''
     echo "Running QuartusLiteSetup (in FHS sandbox)..."
     echo "### ${run-in-fhs-env} $src/components/QuartusLiteSetup* --mode unattended ${disableComponentsOption} --installdir $out"
-    ${run-in-fhs-env} "$src/components/QuartusLiteSetup* --mode unattended ${disableComponentsOption} --installdir $out"
+    ${run-in-fhs-env} "$src/components/QuartusLiteSetup"* --mode unattended ${disableComponentsOption} --installdir "$out"
     echo "...done"
 
     echo "Removing unneeded \"uninstall\" binaries (saves $(du -sh "$out"/uninstall | cut -f1))..."
