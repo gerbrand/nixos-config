@@ -1,8 +1,8 @@
 { config, lib, pkgs, ... }:
 {
   users.extraUsers = {
-    bfo = {
-      description = "Bjørn Forsman";
+    gerbrand = {
+      description = "Gerbrand van Dieyen";
       uid = 1000;
       extraGroups = [
         "adm"
@@ -17,6 +17,7 @@
         "networkmanager"
         "plugdev"
         "scanner"
+        "sudo"
         "systemd-journal"
         "tracing"
         "transmission"
