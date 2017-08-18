@@ -42,6 +42,7 @@
      unzip
      links
      curl
+     php
   ] ;
 
   # List services that you want to enable:
@@ -50,11 +51,17 @@
   services.openssh.enable = true;
   services.openssh.permitRootLogin = "no";
 
+  # services.resilio.enable = true;
+
   networking.firewall.allowedTCPPorts = [ 80 443 ];
   networking.firewall.allowPing = true;
 
   # The NixOS release to be compatible with for stateful data such as databases.
   system.stateVersion = "16.09";
 
-  system.autoUpgrade.enable = true;
+  system.autoUpgrade = {
+    enable = true;
+    dates = "04:40";
+    channel = "https://nixos.org/channels/nixos-17.03";
+  };
 }
