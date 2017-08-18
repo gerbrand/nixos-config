@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  myDomain = "vps0.gerbrand-ict.nl";
+  myDomain = "cloud.gerbrand-ict.nl";
   phpSockName1 = "/run/phpfpm/pool1.sock";
 in
 {
@@ -18,7 +18,7 @@ in
     ../options/gitolite-mirror.nix
   ];
 
-  networking.hostName = "vps0";
+  networking.hostName = "cloud";
 
   users.extraUsers."lighttpd".extraGroups = [ "git" ];
 
@@ -79,6 +79,30 @@ in
         # Lighttpd SSL/HTTPS documentation:
         # http://redmine.lighttpd.net/projects/lighttpd/wiki/Docs_SSL
 
+        $HTTP["host"] == "nextcloud.gerbrand-ict.nl" {
+          $SERVER["socket"] == ":443" {
+            ssl.engine = "enable"
+            ssl.pemfile = "/etc/lighttpd/certs/gerbrand-ict/certificate.pem"
+            ssl.ca-file = "/etc/lighttpd/certs/gerbrand-ict/cabundle.crt"
+          }
+          $HTTP["scheme"] == "http" {
+            url.redirect = ("^/.*" => "https://nextcloud.gerbrand-ict.nl$0")
+          }
+        }
+
+        $HTTP["host"] == "cloud.gerbrand-ict.nl" {
+          $SERVER["socket"] == ":443" {
+            ssl.engine = "enable"
+            ssl.pemfile = "/etc/lighttpd/certs/gerbrand-ict/certificate.pem"
+            ssl.ca-file = "/etc/lighttpd/certs/gerbrand-ict/cabundle.crt"
+          }
+          $HTTP["scheme"] == "http" {
+            $HTTP["url"] =~ "^/nextcloud.*" {
+              url.redirect = ("^/.*" => "https://cloud.gerbrand-ict.nl$0")
+            }
+          }
+        }
+
         $HTTP["host"] == "vps0.gerbrand-ict.nl" {
           $SERVER["socket"] == ":443" {
             ssl.engine = "enable"
@@ -86,15 +110,20 @@ in
             ssl.ca-file = "/etc/lighttpd/certs/gerbrand-ict/cabundle.crt"
           }
           $HTTP["scheme"] == "http" {
-            $HTTP["url"] =~ "^/nextcloud" {
-              url.redirect = ("^/.*" => "https://www.gerbrand-ict.nl$0")
+            $HTTP["url"] =~ "^/nextcloud.*" {
+              url.redirect = ("^/.*" => "https://vps0.gerbrand-ict.nl$0")
             }
           }
         }
 
+
+
       '';
       collectd-graph-panel.enable = true;
-      nextcloud.enable = true;
+      nextcloud = {
+	enable = true;
+        vhostsPattern = ".*.gerbrand-ict.nl";
+      };
       gitweb.enable = true;
       gitweb.projectroot = "/srv/git/repositories";
       gitweb.extraConfig = ''
