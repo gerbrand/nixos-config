@@ -26,8 +26,8 @@ in
 
     postfix = {
       enable = true;
-      domain = "gerbrand-ict.nl";
-      hostname = "vps0";
+      domain = "software-creation.nl";
+      hostname = "mail";
       rootAlias = "gerbrand@vandieijen.nl";
     };
 
@@ -112,6 +112,19 @@ in
           $HTTP["scheme"] == "http" {
             $HTTP["url"] =~ "^/nextcloud.*" {
               url.redirect = ("^/.*" => "https://vps0.gerbrand-ict.nl$0")
+            }
+          }
+        }
+
+        $HTTP["host"] == "www.software-creation.nl" {
+          $SERVER["socket"] == ":443" {
+            ssl.engine = "enable"
+            ssl.pemfile = "/etc/lighttpd/certs/software-creation.nl/certificate.pem"
+            ssl.ca-file = "/etc/lighttpd/certs/software-creation.nl/cabundle.crt"
+          }
+          $HTTP["scheme"] == "http" {
+            $HTTP["url"] =~ "^/nextcloud.*" {
+              url.redirect = ("^/.*" => "https://www.software-creation.nl$0")
             }
           }
         }
