@@ -1,3 +1,5 @@
+**/*.save
+result
 /configuration.nix
 /hardware-configuration.nix
 /nixos-in-place.nix
