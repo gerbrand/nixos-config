@@ -6,13 +6,10 @@
 
 {
   imports =
-    [ ../config/base-small.nix
+    [ ../cfg/base-small.nix
 
       # Build server
-      ../config/hydra.nix
-
-      # Monitoring
-      ../options/collectd-graph-panel.nix
+      ../cfg/hydra.nix
     ];
 
   # Use the systemd-boot EFI boot loader.
@@ -21,8 +18,8 @@
   boot.loader.efi.canTouchEfiVariables = true;
 
   networking.hostName = "hydra"; # Define your hostname.
-  #networking.firewall.allowedTCPPorts = [ 3000 ];
-  networking.firewall.enable = false;
+  networking.firewall.enable = lib.mkForce true;
+  networking.firewall.allowedTCPPorts = [ 80 3000 ];
 
   boot.tmpOnTmpfs = true;
 

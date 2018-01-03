@@ -7,6 +7,7 @@
     ./base-small.nix
     ./munin.nix
     ./desktop-gnome3.nix
+    ./virtualisation.nix
   ];
 
   boot.extraModulePackages = with config.boot.kernelPackages; [
@@ -31,6 +32,7 @@
     bc
     borgbackup
     bridge-utils
+    byobu
     chromium
     cifs_utils  # for mount.cifs, needed for cifs filesystems in systemd.mounts.
     ctags
@@ -52,6 +54,7 @@
     iw
     jq
     keepass
+    keepassx-community
     lm_sensors
     lshw
     lsof
@@ -65,9 +68,11 @@
     networkmanagerapplet
     nixops
     nixpkgs-lint
+    nix-bash-completions
     nix-generate-from-cpan
     nix-prefetch-scripts
     nix-repl
+    nix-serve
     nox
     ntfs3g
     owncloud-client
@@ -87,6 +92,7 @@
     pythonPackages.ipython
     pythonPackages.sympy
     python2nix
+    ripgrep
     rmlint
     samba
     screen
@@ -114,16 +120,18 @@
     which
     wireshark
     w3m
+    xdotool  # for keepass auto-type feature
     xpra
+    yubico-piv-tool
+    yubikey-personalization
+    yubikey-personalization-gui
   ];
 
-  virtualisation.libvirtd.enable = true;
-  virtualisation.lxc.enable = true;
-  virtualisation.lxc.usernetConfig = ''
-    bfo veth lxcbr0 10
-  '';
-  virtualisation.docker.enable = true;
-  virtualisation.docker.storageDriver = "overlay";
+  networking.networkmanager.pia-vpn.enable = true;
+  networking.networkmanager.pia-vpn.usernameFile = "/etc/pia-vpn.username";
+  networking.networkmanager.pia-vpn.passwordFile = "/etc/pia-vpn.password";
+  networking.networkmanager.pia-vpn.serverList =
+    [ "denmark" "fi" "nl" "no" "sweden" "uk-london" "us-newyorkcity" ];
 
   programs.chromium = {
     enable = true;
@@ -133,6 +141,8 @@
     extensions = [
       "cmedhionkhpnakcndndgjdbohmhepckk" # Adblock for Youtube™
       "bodncoafpihbhpfljcaofnebjkaiaiga" # appear.in screen sharing
+      "iaalpfgpbocpdfblpnhhgllgbdbchmia" # Asciidoctor.js Live Preview
+      "ompiailgknfdndiefoaoiligalphfdae" # chromeIPass
       "gcbommkclmclpchllfjekcdonpmejbdp" # HTTPS Everywhere
       "dbepggeogbaibhgnhhndojpepiihcmeb" # Vimium
     ];
@@ -155,21 +165,47 @@
 
     # cups, for printing documents
     printing.enable = true;
-    printing.gutenprint = true; # lots of printer drivers
+    printing.drivers = with pkgs; [ gutenprint ];
 
     locate = {
       enable = true;
-      extraFlags = [
-        "--prunefs='sshfs'"
-      ];
+      # "findutils" is the default package (as per NixOS 17.03), but "mlocate"
+      # has benefits:
+      # 1. It (supposedly) updates its database faster.
+      # 2. Its 'locate' command checks user permissions so that
+      #    (a) users only see files they have access to on the filesystem and
+      #    (b) indexing can run as root (without leaking file listings to
+      #    unprivileged users).
+      locate = pkgs.mlocate;
+      localuser = null;  # needed so mlocate can run as root (TODO: improve NixOS module)
+      interval = "02:15";
     };
 
     # for hamster-time-tracker
     dbus.packages = with pkgs; [ gnome3.gconf ];
 
+    postfix = {
+      enable = true;
+      # Possibly set "domain" in machine specific configs.
+      # The default "From:" address is
+      #   user@${config.networking.hostName}.localdomain
+      #domain = "server1.example";
+      rootAlias = "bjorn.forsman@gmail.com";
+      extraConfig = ''
+        inet_interfaces = loopback-only
+      '';
+    };
+
+    syncthing = {
+      enable = true;
+      group = "syncthing"; # NixOS defaults to "nogroup" (should be fixed)
+    };
+
     # Provide "MODE=666" or "MODE=664 + GROUP=plugdev" for a bunch of USB
     # devices, so that we don't have to run as root.
-    udev.packages = with pkgs; [ rtl-sdr saleae-logic openocd ];
+    udev.packages = with pkgs; [
+      rtl-sdr saleae-logic openocd libu2f-host yubikey-personalization
+    ];
     udev.extraRules = ''
       # Rigol oscilloscopes
       SUBSYSTEMS=="usb", ACTION=="add", ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0588", MODE="0660", GROUP="usbtmc"
@@ -191,29 +227,6 @@
       # (after 'modprobe usbmon').
       SUBSYSTEM=="usbmon", GROUP="usbmon", MODE="640"
     '';
-
-    apcupsd = {
-      #enable = true;
-      hooks.doshutdown = ''
-        HOSTNAME=\$(${pkgs.nettools}/bin/hostname)
-        printf \"Subject: apcupsd: \$HOSTNAME is shutting down\\n\" | ${pkgs.msmtp}/bin/msmtp -C /home/bfo/.msmtprc bjorn.forsman@gmail.com
-      '';
-      hooks.onbattery = ''
-        HOSTNAME=\$(${pkgs.nettools}/bin/hostname)
-        printf \"Subject: apcupsd: \$HOSTNAME is running on battery\\n\" | ${pkgs.msmtp}/bin/msmtp -C /home/bfo/.msmtprc bjorn.forsman@gmail.com
-      '';
-      hooks.offbattery = ''
-        HOSTNAME=\$(${pkgs.nettools}/bin/hostname)
-        printf \"Subject: apcupsd: \$HOSTNAME is running on mains power\\n\" | ${pkgs.msmtp}/bin/msmtp -C /home/bfo/.msmtprc bjorn.forsman@gmail.com
-      '';
-      configText = ''
-        UPSTYPE usb
-        NISIP 127.0.0.1
-        BATTERYLEVEL 75
-        MINUTES 10
-        #TIMEOUT 10  # for debugging, shutdown after N seconds on batteries
-      '';
-    };
 
     samba = {
       #enable = true;
@@ -240,6 +253,41 @@
       ExecStart = ''
         ${pkgs.stdenv.shell} -c "while true; do echo Hello World; sleep 10; done"
       '';
+    };
+  };
+
+  systemd.services."status-email@" = {
+    description = "Send Status Email For Unit %i";
+    path = [ "/run/wrappers" ];
+    serviceConfig = {
+      Type = "oneshot";
+      # If running as nobody:systemd-journal the log is missing and this
+      # warning is shown:
+      #  Warning: Journal has been rotated since unit was started. Log output is incomplete or unavailable.
+      #User = "nobody";
+      #Goup = "systemd-journal";
+      SyslogIdentifier = "status-email";
+      ExecStart =
+        let
+          statusEmail = pkgs.writeScript "status-email" ''
+            #!${pkgs.bash}/bin/sh
+            set -e
+            addr=$1
+            unit=$2
+            sendmail -t <<__EOF__
+            To: $addr
+            From: systemd@$HOSTNAME <root@$HOSTNAME>
+            Subject: $unit
+            Content-Transfer-Encoding: 8bit
+            Content-Type: text/plain; charset=UTF-8
+
+            $(systemctl status --full "$unit" -n50)
+            __EOF__
+            echo "Status mail sent to $addr for unit $unit"
+          '';
+        in
+          # Use config.postfix.rootAlias to configure who gets root's email.
+          "${statusEmail} root %i";
     };
   };
 }

@@ -7,7 +7,7 @@ in
 {
   imports = [
     ../hardware-configuration.nix
-    ../config/base-ger.nix
+    ../cfg/base-ger.nix
     ../nixos-in-place.nix
     ../config/clamav.nix
     ../config/gitolite.nix

@@ -14,8 +14,8 @@ in
     package = mkOption {
       type = types.package;
       default = pkgs.fetchzip {
-        url = "https://download.nextcloud.com/server/releases/nextcloud-12.0.3.zip";
-        sha256 = "06k446bgl7lyjjys5g61b22sfdlb1k9pg4i9d7qn31j9j3pw9x1k";
+        url = "https://download.nextcloud.com/server/releases/nextcloud-12.0.4.zip";
+        sha256 = "1475hh3shdb53cl1l9nm1rsqqpjar6383bxzfk99668k0hp2pc54";
       };
       description = "Nextcloud package to use.";
     };
@@ -70,10 +70,6 @@ in
     services.lighttpd = {
       enableModules = [ "mod_alias" "mod_fastcgi" "mod_access" "mod_setenv" ];
       extraConfig = ''
-        mimetype.assign += (
-            ".svg" => "image/svg+xml",
-        )
-
         $HTTP["host"] =~ "${cfg.vhostsPattern}" {
             alias.url += ( "${cfg.urlPrefix}" => "${cfg.installPrefix}/" )
             # Prevent direct access to the data directory, like nextcloud warns

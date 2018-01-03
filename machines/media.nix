@@ -2,7 +2,7 @@
 
 {
   imports = [
-    ../config/base-medium.nix
+    ../cfg/base-medium.nix
   ];
 
   boot.loader.grub.device =
@@ -18,7 +18,7 @@
   system.autoUpgrade = {
     enable = true;
     dates = "04:40";
-    channel = "https://nixos.org/channels/nixos-17.03";
+    channel = "https://nixos.org/channels/nixos-17.09";
   };
 
   nixpkgs.config = {
@@ -59,14 +59,8 @@
       description = "Media user";
       uid = 1001;
       extraGroups = [
-        "audio"
         "cdrom"
-        "dialout"
-        "networkmanager"
-        "plugdev"
-        "scanner"
         "transmission"
-        "video"
         "wheel"
       ];
       isNormalUser = true;
@@ -74,103 +68,95 @@
     };
   };
 
-  systemd.services.borg-backup = {
-    # Restore everything:
-    # $ cd /mnt/restore
-    # $ [sudo] borg extract --list /mnt/backup-disk/repo-name::archive-name
-    #
-    # Interactive restore (slower than 'borg extract'):
-    # $ borg mount /mnt/backup-disk/repo-name /mnt/fuse-mountpoint
-    # $ ls -1 /mnt/fuse-mountpoint
-    # my-machine-20150220T234453
-    # my-machine-20150321T114708
-    # ... restore files (cp/rsync) ...
-    # $ fusermount -u /mnt/fuse-mountpoint
+  services.borg-backup = rec {
     enable = true;
-    description = "Borg Backup Service";
-    startAt = "*-*-* 01:15:00";  # see systemd.time(7)
-    environment = {
-      BORG_RELOCATED_REPO_ACCESS_IS_OK = "yes";
-    };
-    path = with pkgs; [
-      borgbackup utillinux coreutils
-    ];
-    serviceConfig.RemainAfterExit = "yes";
-    serviceConfig.ExecStart =
-      let
-        # - The initial backup repo must be created manually:
-        #     $ sudo borg init --encryption none $repository
-        # - Use writeScriptBin instead of writeScript, so that argv[0] (logged
-        #   to the journal) doesn't include the long Nix store path hash.
-        #   (Prefixing the ExecStart= command with '@' doesn't work because we
-        #   start a shell (new process) that creates a new argv[0].)
-        borgBackup = pkgs.writeScriptBin "borg-backup-script" ''
-          #!${pkgs.bash}/bin/sh
-          repository="/mnt/backup-disk/backup-maria.borg"
+    repository = "/mnt/backup-disk/backup-maria.borg";
+    archiveBaseName = "maria-pc_seagate_expansion_drive_4tb";
+    pathsToBackup = [ "/mnt/${archiveBaseName}" ];
+    preHook = ''
+      # Email notification receivers.
+      # Separate multiple addresses with comma and space (", ").
+      to_recipients="$(cat /etc/marias-email-address.txt)"
+      cc_recipients="bjorn.forsman@gmail.com"
 
-          die()
-          {
-              echo "$*"
-              # Allow systemd to associate this message with the unit before
-              # exit. Yep, it's a race.
-              sleep 3
-              exit 1
-          }
-
-          # access the mountpoint now, to trigger automount (why is this needed?)
-          if ! ls -ld /mnt/maria-pc_seagate_expansion_drive_4tb/; then
-              die "Failed to mount maria-pc"
+      backup_age_in_days()
+      {
+          today=$(date +%Y-%m-%d)
+          newest_backup_date=$(borg info "$repository"::"$(borg list "$repository" | tail -1 | awk '{print $1}')" | awk '/Time \(start\)/ {print $4}')
+          # POSIX sh:
+          #n_days_old=$(echo "scale=0; ( $(date -d $today +%s) - $(date -d $newest_backup_date +%s) ) / (24*3600)" | bc)
+          # bash(?):
+          n_days_old=$(( ( $(date -d $today +%s) - $(date -d $newest_backup_date +%s) ) / (24*3600) ))
+          if [ "$n_days_old" -eq "$n_days_old" ] 2>/dev/null
+          then
+              # $n_days_old is an integer
+              echo "$n_days_old"
+          else
+              echo "-1"
           fi
-          # Oops! autofs is considered a filesystem, so this check will always pass.
-          if ! mountpoint /mnt/maria-pc_seagate_expansion_drive_4tb; then
-              die "exiting"
+      }
+
+      maybe_send_failure_notification()
+      {
+          n_days_old=$(backup_age_in_days)
+          echo "Last backup is $n_days_old days old"
+          if [ $n_days_old -ge 7 -a $(( $n_days_old % 7 )) = 0 ]; then
+              echo "Warning: backup is old ($n_days_old days), sending email"
+              send_email $(n_days_old)
           fi
+      }
 
-          echo "Running 'borg create [...]'"
-          borg create \
-              --stats \
-              --verbose \
-              --list \
-              --filter AME \
-              --show-rc \
-              --one-file-system \
-              --exclude-caches \
-              --exclude '*/$RECYCLE.BIN' \
-              --exclude '*/System Volume Information' \
-              --compression lz4 \
-              "$repository::maria-pc_seagate_expansion_drive_4tb-$(date +%Y%m%dT%H%M%S)" \
-              /mnt/maria-pc_seagate_expansion_drive_4tb/
-          create_ret=$?
+      dieHook() {
+          maybe_send_failure_notification
+      }
 
-          echo "Running 'borg prune [...]'"
-          borg prune \
-              --stats \
-              --verbose \
-              --list \
-              --show-rc \
-              --keep-within=2d --keep-daily=7 --keep-weekly=4 --keep-monthly=6 \
-              --prefix maria-pc_seagate_expansion_drive_4tb- \
-              "$repository"
-          prune_ret=$?
+      send_email()
+      {
+          n_days_old=$1
+          test "$n_days_old" -eq "$n_days_old" || { echo "ERROR: Programming error, n_days_old=$n_days_old is not an integer"; exit 1; }
+          cat << EOM | sendmail -t
+      From: "Mr. Robot" <noreply>
+      To: $to_recipients
+      Cc: $cc_recipients
+      Subject: Obs, sikkerhetskopien din er gammel
 
-          echo "Running 'borg check [...]'"
-          borg check \
-              --verbose \
-              --show-rc \
-              "$repository"
-          check_ret=$?
+      Hei Maria,
 
-          # Exit with error if either command failed
-          if [ $create_ret != 0 -o $prune_ret != 0 -o $check_ret != 0 ]; then
-              die "borg create, prune and/or check operation failed. Exiting with error."
-          fi
-        '';
-        borgBackupScript = "${borgBackup}/bin/borg-backup-script";
-      in
-        borgBackupScript;
+      Jeg heter Hal og en robot som Bjørn har laget.
+      Hver natt tar jeg sikkerhetskopi av dataene fra den eksterne
+      harddisken din og over til stue-PCen. Men nå er det $n_days_old dager siden sist.
+
+      Kan du la PCen stå på en natt slik at jeg får tatt en ny sikkerhetskopi for deg?
+
+      Ha en fin dag!
+
+      Mvh
+      Hal 9000 / Bjørn Forsman
+      EOM
+      }
+
+      # For test
+      #send_email $(backup_age_in_days)
+      #exit 0
+
+      # access the mountpoint now, to trigger automount (why is this needed?)
+      if ! ls -ld /mnt/${archiveBaseName}; then
+          die "Failed to mount maria-pc"
+      fi
+      # Oops! autofs is considered a filesystem, so this check will always pass.
+      if ! mountpoint /mnt/${archiveBaseName}; then
+          die "exiting"
+      fi
+      if [ $(ls /mnt/${archiveBaseName} | wc -l) -lt 1 ]; then
+          die "/mnt/${archiveBaseName} has no files, assuming mount failure"
+      fi
+    '';
   };
 
   users.extraUsers.bfo.openssh.authorizedKeys.keys = with import ../misc/ssh-keys.nix; [
     bfo_at_mini
   ];
+
+  # The NixOS release to be compatible with for stateful data such as databases.
+  system.stateVersion = "17.03";
 }
